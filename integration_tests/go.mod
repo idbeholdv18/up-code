@@ -3,10 +3,10 @@ module github.com/idbeholdv18/up-code/integration_tests
 go 1.26.0
 
 require (
+	github.com/idbeholdv18/up-code/app v0.0.0
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/testcontainers/testcontainers-go v0.45.0
 	github.com/testcontainers/testcontainers-go/modules/postgres v0.45.0
-	github.com/idbeholdv18/up-code/app v0.0.0
 )
 
 replace github.com/idbeholdv18/up-code/app => ../app

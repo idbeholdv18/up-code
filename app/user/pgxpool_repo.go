@@ -7,17 +7,17 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
-type pgxpoolUserRepo struct {
+type pgxpoolRepo struct {
 	pool *pgxpool.Pool
 }
 
-func NewPgxpoolUserRepo(pool *pgxpool.Pool) UserRepo {
-	return &pgxpoolUserRepo{
+func NewPgxpoolRepo(pool *pgxpool.Pool) UserRepo {
+	return &pgxpoolRepo{
 		pool: pool,
 	}
 }
 
-func (r *pgxpoolUserRepo) FindByID(ctx context.Context, id int64) (*User, error) {
+func (r *pgxpoolRepo) FindByID(ctx context.Context, id int64) (*User, error) {
 	sql := `
 		SELECT id, email, password_hash, full_name, created_at, updated_at
 		FROM users
@@ -38,7 +38,7 @@ func (r *pgxpoolUserRepo) FindByID(ctx context.Context, id int64) (*User, error)
 	return &u, nil
 }
 
-func (r *pgxpoolUserRepo) FindByEmail(ctx context.Context, email string) (*User, error) {
+func (r *pgxpoolRepo) FindByEmail(ctx context.Context, email string) (*User, error) {
 	sql := `
 		SELECT id, email, password_hash, full_name, created_at, updated_at
 		FROM users
@@ -59,7 +59,7 @@ func (r *pgxpoolUserRepo) FindByEmail(ctx context.Context, email string) (*User,
 	return &u, nil
 }
 
-func (r *pgxpoolUserRepo) Create(ctx context.Context, email string, password_hash string, fullName string) (*User, error) {
+func (r *pgxpoolRepo) Create(ctx context.Context, email string, password_hash string, fullName string) (*User, error) {
 	sql := `
 		INSERT INTO users (email, password_hash, full_name) 
 		VALUES ($1, $2, $3)

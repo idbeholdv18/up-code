@@ -84,7 +84,7 @@ func TestMain(m *testing.M) {
 
 func TestPgxpoolUserRepo_Create(t *testing.T) {
 	ctx := context.Background()
-	repo := user.NewPgxpoolUserRepo(testPool)
+	repo := user.NewPgxpoolRepo(testPool)
 
 	// TODO add truncate helper
 	created, err := repo.Create(ctx, "test@mail.ru", "test_password", "name surname")

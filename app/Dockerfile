@@ -1,7 +1,7 @@
 FROM golang:1.27.3-alpine3.24 AS build
 
 WORKDIR /usr/local/src
-COPY go.mod ./
+COPY go.mod go.sum ./
 
 RUN go mod download
 COPY . .

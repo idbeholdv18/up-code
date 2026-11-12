@@ -6,3 +6,47 @@ services:
     container_name: app
     ports:
       - "8080:8080"
+    networks:
+      - app_net
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  db:
+    image: postgres:18
+    container_name: db
+    env_file:
+      - .env
+    volumes:
+      - app_volume:/var/lib/postgresql
+    networks:
+      - app_net
+    healthcheck:
+      test: ["CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  migrate:
+    image: migrate/migrate:v4.20.1
+    container_name: migrate
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./migrations:/migrations
+    command: 
+      - -database=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db/${POSTGRES_DB}?sslmode=disable
+      - -path=/migrations/
+      - up
+    networks:
+      - app_net
+
+networks:
+  app_net:
+
+volumes:
+  app_volume:

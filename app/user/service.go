@@ -12,7 +12,7 @@ type baseService struct {
 	repo UserRepo
 }
 
-func NewService(repo UserRepo) Service {
+func NewBaseService(repo UserRepo) Service {
 	return &baseService{
 		repo: repo,
 	}

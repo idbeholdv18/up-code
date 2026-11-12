@@ -3,6 +3,7 @@ package integrationtests
 import (
 	"context"
 	"log"
+	"os"
 	"path/filepath"
 	"testing"
 
@@ -16,56 +17,43 @@ import (
 
 var testPool *pgxpool.Pool
 
-func TestMain(m *testing.M) {
+func run(m *testing.M) int {
 	ctx := context.Background()
 
-	net, err := network.New(ctx)
+	net, netCleanup, err := helpers.NewNetwork(ctx)
 	if err != nil {
-		log.Fatalf("error during network creating: %v", err)
-		return
+		log.Printf("network create error: %v", err)
+		return 1
 	}
-	defer func() {
-		if err := net.Remove(ctx); err != nil {
-			log.Fatalf("error during network remove: %v", err)
-		}
-	}()
+	defer netCleanup()
 
 	postgresAlias := "test_db"
 
-	pgc, err := helpers.CreatePostgresContainer(ctx,
+	pgc, postgresCleanup, err := helpers.NewPostgresContainer(ctx,
 		postgres.WithUsername("test"),
 		postgres.WithPassword("test"),
 		postgres.WithDatabase("test"),
 		network.WithNetwork([]string{postgresAlias}, net),
 	)
-	defer func() {
-		if err := pgc.Terminate(ctx); err != nil {
-			log.Fatalf("error during postgres container terminating: %v", err)
-		}
-	}()
 	if err != nil {
-		log.Fatalf("error during postgres container creating: %v", err)
-		return
+		log.Printf("postgres container creating error: %v", err)
+		return 1
 	}
+	defer postgresCleanup()
 
-	testPool, err = pgxpool.New(ctx, pgc.ConnectionString)
+	internalConnStr, err := pgc.InternalConnectionString(postgresAlias)
 	if err != nil {
-		log.Fatalf("error during connection to db: %v", err)
-		return
+		log.Printf("postgres test containerinternal connection string getting error: %v", err)
+		return 1
 	}
 
 	migrationsPath, err := filepath.Abs(filepath.Join("..", "migrations"))
 	if err != nil {
-		log.Fatalf("error during resolving migrations dir path: %v", err)
-		return
+		log.Printf("host migrations path resolving error: %v", err)
+		return 1
 	}
 
-	internalConnStr, err := pgc.InternalConnectionString(postgresAlias)
-	if err != nil {
-		log.Fatalf("error during getting internal conn str: %v", err)
-		return
-	}
-	mc, err := helpers.CreateMigrationsContainer(ctx,
+	_, migrationsCleanup, err := helpers.NewMigrationsContainer(ctx,
 		internalConnStr,
 		network.WithNetwork(nil, net),
 		testcontainers.WithFiles(testcontainers.ContainerFile{
@@ -74,21 +62,24 @@ func TestMain(m *testing.M) {
 			FileMode:          0o400,
 		}),
 	)
-	defer func() {
-		if err := mc.Terminate(ctx); err != nil {
-			log.Fatalf("error during migration container terminating: %v", err)
-		}
-	}()
 	if err != nil {
-		log.Fatalf("error during migration container creating: %v", err)
-		return
+		log.Printf("migrations container creating error: %v", err)
+		return 1
 	}
+	defer migrationsCleanup()
 
-	code := m.Run()
-	if code != 0 {
-		log.Fatalf("tests failed with exit code %d", code)
-		return
+	testPool, err = pgxpool.New(ctx, pgc.ConnectionString)
+	if err != nil {
+		log.Printf("pgxpool creating creating error: %v", err)
+		return 1
 	}
+	defer testPool.Close()
+
+	return m.Run()
+}
+
+func TestMain(m *testing.M) {
+	os.Exit(run(m))
 }
 
 func TestPgxpoolUserRepo_Create(t *testing.T) {

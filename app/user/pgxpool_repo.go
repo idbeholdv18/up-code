@@ -19,7 +19,7 @@ func NewPgxpoolRepo(pool *pgxpool.Pool) UserRepo {
 
 func (r *pgxpoolRepo) FindByID(ctx context.Context, id int64) (*User, error) {
 	sql := `
-		SELECT id, email, password_hash, full_name, created_at, updated_at
+		SELECT id, email, password_hash, full_name, created_at, updated_at, activated_at
 		FROM users
 		WHERE id = $1
 	`
@@ -40,7 +40,7 @@ func (r *pgxpoolRepo) FindByID(ctx context.Context, id int64) (*User, error) {
 
 func (r *pgxpoolRepo) FindByEmail(ctx context.Context, email string) (*User, error) {
 	sql := `
-		SELECT id, email, password_hash, full_name, created_at, updated_at
+		SELECT id, email, password_hash, full_name, created_at, updated_at, activated_at
 		FROM users
 		WHERE email = $1
 	`
@@ -63,7 +63,7 @@ func (r *pgxpoolRepo) Create(ctx context.Context, email string, password_hash st
 	sql := `
 		INSERT INTO users (email, password_hash, full_name) 
 		VALUES ($1, $2, $3)
-		RETURNING id, email, password_hash, full_name, created_at, updated_at
+		RETURNING id, email, password_hash, full_name, created_at, updated_at, activated_at
 	`
 
 	rows, err := r.pool.Query(ctx, sql, email, password_hash, fullName)

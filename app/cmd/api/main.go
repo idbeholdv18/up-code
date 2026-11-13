@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -37,11 +38,13 @@ func main() {
 		log.Fatalf("pgxpool creating error: %v", err)
 	}
 
-	tokenService := token.NewJwtAccessTokenService([]byte(jwtSecretKey))
+	accessTokenService := token.NewJwtAccessTokenService([]byte(jwtSecretKey), time.Minute*5)
 
 	userRepo := user.NewPgxpoolRepo(pool)
 	userService := user.NewBaseService(userRepo)
-	authHandler := auth.NewHttpHandler(userService, tokenService)
+	authHandler := auth.NewHttpHandler(userService, accessTokenService)
+
+	jwtMiddleware := auth.JwtMiddleware(accessTokenService)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -49,6 +52,14 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.HandleRegister)
 		r.Post("/login", authHandler.HandleLogin)
+	})
+
+	r.Route("/protected", func(r chi.Router) {
+		r.Use(jwtMiddleware)
+		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
+			id, _ := auth.GetUserIDFromCtx(r.Context())
+			fmt.Fprintf(w, "protected: %d\n", id)
+		})
 	})
 
 	http.ListenAndServe(":8080", r)

@@ -87,7 +87,7 @@ func (h *httpHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		UserID: candidate.ID,
 	}
 
-	ss, err := h.accessTokenService.Create(r.Context(), &claims)
+	ss, err := h.accessTokenService.Create(r.Context(), claims)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode("create token error")

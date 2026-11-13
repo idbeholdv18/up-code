@@ -16,19 +16,22 @@ type claimsEnvelope struct {
 type jwtAccessTokenService struct {
 	key           []byte
 	signingMethod jwt.SigningMethod
+	ttl           time.Duration
 }
 
-func NewJwtAccessTokenService(key []byte) AccessTokenService {
+func NewJwtAccessTokenService(key []byte, ttl time.Duration) AccessTokenService {
 	return &jwtAccessTokenService{
-		key: key,
+		key:           key,
+		signingMethod: jwt.SigningMethodHS256,
+		ttl:           ttl,
 	}
 }
 
-func (s *jwtAccessTokenService) Create(ctx context.Context, claims *AccessTokenClaims) (string, error) {
+func (s *jwtAccessTokenService) Create(ctx context.Context, claims AccessTokenClaims) (string, error) {
 	c := claimsEnvelope{
 		claims.UserID,
 		jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(5 * time.Minute)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(s.ttl)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			NotBefore: jwt.NewNumericDate(time.Now()),
 		},

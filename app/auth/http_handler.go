@@ -5,22 +5,37 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/google/uuid"
 	"github.com/idbeholdv18/up-code/app/hash"
+	"github.com/idbeholdv18/up-code/app/mail"
 	"github.com/idbeholdv18/up-code/app/token"
 	"github.com/idbeholdv18/up-code/app/user"
 )
 
 type httpHandler struct {
-	userService        user.Service
-	accessTokenService token.AccessTokenService
-	hashService        hash.HashService
+	userService              user.Service
+	accessTokenService       token.AccessTokenService
+	confirmationTokenService token.ConfirmationTokenService
+	hashService              hash.HashService
+	mailPublisher            mail.Publisher
+	baseURL                  string
 }
 
-func NewHttpHandler(userService user.Service, accessTokenService token.AccessTokenService, hashService hash.HashService) *httpHandler {
+func NewHttpHandler(
+	userService user.Service,
+	accessTokenService token.AccessTokenService,
+	hashService hash.HashService,
+	confirmationTokenService token.ConfirmationTokenService,
+	mailPublisher mail.Publisher,
+	baseURL string,
+) *httpHandler {
 	return &httpHandler{
-		userService:        userService,
-		accessTokenService: accessTokenService,
-		hashService:        hashService,
+		userService:              userService,
+		accessTokenService:       accessTokenService,
+		confirmationTokenService: confirmationTokenService,
+		hashService:              hashService,
+		mailPublisher:            mailPublisher,
+		baseURL:                  baseURL,
 	}
 }
 
@@ -52,7 +67,35 @@ func (h *httpHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	u, err := h.userService.Create(r.Context(), body.Email, hashedPassword, body.FullName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode("internal error")
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error: %v", err))
+		return
+	}
+
+	confirmationToken, err := h.confirmationTokenService.Create(r.Context(), token.ConfirmationTokenClaims{
+		UserID: u.ID,
+		Email:  u.Email,
+	})
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %v", err))
+		return
+	}
+
+	confirmationLink := fmt.Sprintf("%s/auth/confirm?token=%s", h.baseURL, confirmationToken)
+
+	event := mail.ConfirmationEmailEvent{
+		EventID:          uuid.NewString(),
+		Email:            u.Email,
+		FullName:         u.FullName,
+		ConfirmationLink: confirmationLink,
+	}
+
+	err = h.mailPublisher.PublishConfirmation(r.Context(), event)
+	if err != nil {
+		// TODO fix Dual Write
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %v", err))
 		return
 	}
 

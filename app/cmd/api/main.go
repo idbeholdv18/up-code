@@ -12,9 +12,12 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/idbeholdv18/up-code/app/auth"
 	"github.com/idbeholdv18/up-code/app/hash"
+	"github.com/idbeholdv18/up-code/app/mail"
 	"github.com/idbeholdv18/up-code/app/token"
 	"github.com/idbeholdv18/up-code/app/user"
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	rmq "github.com/rabbitmq/rabbitmq-amqp-go-client/pkg/rabbitmqamqp"
 )
 
 func main() {
@@ -27,9 +30,19 @@ func main() {
 		log.Fatalf("postgres username, password and db must be provided by env")
 	}
 
-	jwtSecretKey := os.Getenv("JWT_ACCESS_SECRET")
-	if jwtSecretKey == "" {
+	jwtAccessSecretKey := os.Getenv("JWT_ACCESS_SECRET")
+	if jwtAccessSecretKey == "" {
 		log.Fatalf("jwt access token must be provided by env")
+	}
+	jwtConfirmationSecretKey := os.Getenv("JWT_CONFIRMATION_SECRET")
+	if jwtConfirmationSecretKey == "" {
+		log.Fatalf("jwt confirmation token must be provided by env")
+	}
+
+	rabbitmqUser := os.Getenv("RABBITMQ_DEFAULT_USER")
+	rabbitmqPassword := os.Getenv("RABBITMQ_DEFAULT_PASS")
+	if rabbitmqUser == "" || rabbitmqPassword == "" {
+		log.Panicf("rabbitmq user and password must be provided by env")
 	}
 
 	connString := fmt.Sprintf("postgres://%s:%s@db/%s?sslmode=disable", postgresUsername, postgresPassword, postgresDB)
@@ -39,12 +52,51 @@ func main() {
 		log.Fatalf("pgxpool creating error: %v", err)
 	}
 
-	accessTokenService := token.NewJwtAccessTokenService([]byte(jwtSecretKey), time.Minute*5)
+	brokerURI := fmt.Sprintf("amqp://%s:%s@rabbitmq/", rabbitmqUser, rabbitmqPassword)
+
+	env := rmq.NewEnvironment(brokerURI, nil)
+	conn, err := env.NewConnection(ctx)
+	if err != nil {
+		log.Fatalf("failed to connect to rabbitmq: %v", err)
+	}
+	defer func() {
+		_ = env.CloseConnections(context.Background())
+	}()
+
+	const confirmationQueueName = "mail.confirmation"
+
+	_, err = conn.Management().DeclareQueue(ctx, &rmq.QuorumQueueSpecification{
+		Name: confirmationQueueName,
+	})
+	if err != nil {
+		log.Fatalf("falied to declare a queue: %v", err)
+	}
+
+	publisher, err := conn.NewPublisher(ctx, &rmq.QueueAddress{
+		Queue: confirmationQueueName,
+	}, nil)
+	if err != nil {
+		log.Fatalf("failed to create publisher: %v", err)
+	}
+	defer func() {
+		_ = publisher.Close(context.Background())
+	}()
+
+	mailPublisher := mail.NewRmqPublisher(publisher)
+	accessTokenService := token.NewJwtAccessTokenService([]byte(jwtAccessSecretKey), time.Minute*5)
+	confirmationTokenService := token.NewJwtConfirmationTokenService([]byte(jwtConfirmationSecretKey), time.Hour*24)
 	passwordHashService := hash.NewArgon2idService(4)
 
 	userRepo := user.NewPgxpoolRepo(pool)
 	userService := user.NewBaseService(userRepo)
-	authHandler := auth.NewHttpHandler(userService, accessTokenService, passwordHashService)
+	authHandler := auth.NewHttpHandler(
+		userService,
+		accessTokenService,
+		passwordHashService,
+		confirmationTokenService,
+		mailPublisher,
+		"http://localhost:8080",
+	)
 
 	jwtMiddleware := auth.JwtMiddleware(accessTokenService)
 

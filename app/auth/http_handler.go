@@ -2,8 +2,10 @@ package auth
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
+	"github.com/idbeholdv18/up-code/app/hash"
 	"github.com/idbeholdv18/up-code/app/token"
 	"github.com/idbeholdv18/up-code/app/user"
 )
@@ -11,12 +13,14 @@ import (
 type httpHandler struct {
 	userService        user.Service
 	accessTokenService token.AccessTokenService
+	hashService        hash.HashService
 }
 
-func NewHttpHandler(userService user.Service, accessTokenService token.AccessTokenService) *httpHandler {
+func NewHttpHandler(userService user.Service, accessTokenService token.AccessTokenService, hashService hash.HashService) *httpHandler {
 	return &httpHandler{
 		userService:        userService,
 		accessTokenService: accessTokenService,
+		hashService:        hashService,
 	}
 }
 
@@ -38,7 +42,14 @@ func (h *httpHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	u, err := h.userService.Create(r.Context(), body.Email, body.Password, body.FullName)
+	hashedPassword, err := h.hashService.Hash(r.Context(), body.Password)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %v", err))
+		return
+	}
+
+	u, err := h.userService.Create(r.Context(), body.Email, hashedPassword, body.FullName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		json.NewEncoder(w).Encode("internal error")
@@ -77,7 +88,14 @@ func (h *httpHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if candidate.PasswordHash != body.Password {
+	isPasswordCorrect, err := h.hashService.Compare(r.Context(), body.Password, candidate.PasswordHash)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %v", err))
+		return
+	}
+
+	if !isPasswordCorrect {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode("incorrect email or password")
 		return

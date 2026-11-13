@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/idbeholdv18/up-code/app/auth"
+	"github.com/idbeholdv18/up-code/app/hash"
 	"github.com/idbeholdv18/up-code/app/token"
 	"github.com/idbeholdv18/up-code/app/user"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -39,10 +40,11 @@ func main() {
 	}
 
 	accessTokenService := token.NewJwtAccessTokenService([]byte(jwtSecretKey), time.Minute*5)
+	passwordHashService := hash.NewArgon2idService(4)
 
 	userRepo := user.NewPgxpoolRepo(pool)
 	userService := user.NewBaseService(userRepo)
-	authHandler := auth.NewHttpHandler(userService, accessTokenService)
+	authHandler := auth.NewHttpHandler(userService, accessTokenService, passwordHashService)
 
 	jwtMiddleware := auth.JwtMiddleware(accessTokenService)
 

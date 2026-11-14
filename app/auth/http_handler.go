@@ -160,3 +160,42 @@ func (h *httpHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		AccessToken: ss,
 	})
 }
+
+func (h *httpHandler) HandleActivate(w http.ResponseWriter, r *http.Request) {
+	w.Header().Add("Content-Type", "application/json")
+
+	rawToken := r.URL.Query().Get("token")
+	if rawToken == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode("missing confirmation token")
+		return
+	}
+
+	claims, err := h.confirmationTokenService.Parse(r.Context(), rawToken)
+	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(fmt.Sprintf("invalid confirmation token %v", err))
+		return
+	}
+
+	u, err := h.userService.Activate(r.Context(), claims.UserID)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error: %v", err))
+		return
+	}
+
+	// TODO bad check. Move to repo
+	if u.ActivatedAt == nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(fmt.Sprintf("internal error: %v", err))
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(ActivateResponsePayload{
+		Email:       u.Email,
+		FullName:    u.FullName,
+		ActivatedAt: *u.ActivatedAt,
+	})
+}

@@ -6,6 +6,7 @@ type Service interface {
 	FindByID(ctx context.Context, id int64) (*User, error)
 	FindByEmail(ctx context.Context, email string) (*User, error)
 	Create(ctx context.Context, email string, passwordHash string, fullName string) (*User, error)
+	Activate(ctx context.Context, id int64) (*User, error)
 }
 
 type baseService struct {
@@ -28,4 +29,8 @@ func (s *baseService) FindByEmail(ctx context.Context, email string) (*User, err
 
 func (s *baseService) Create(ctx context.Context, email string, passwordHash string, fullName string) (*User, error) {
 	return s.repo.Create(ctx, email, passwordHash, fullName)
+}
+
+func (s *baseService) Activate(ctx context.Context, id int64) (*User, error) {
+	return s.repo.Activate(ctx, id)
 }

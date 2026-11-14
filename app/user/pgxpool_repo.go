@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -67,6 +68,28 @@ func (r *pgxpoolRepo) Create(ctx context.Context, email string, password_hash st
 	`
 
 	rows, err := r.pool.Query(ctx, sql, email, password_hash, fullName)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[User])
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &u, nil
+}
+
+func (r *pgxpoolRepo) Activate(ctx context.Context, id int64) (*User, error) {
+	sql := `
+		UPDATE users 
+		SET activated_at = $1
+		WHERE id = $2
+		RETURNING id, email, password_hash, full_name, created_at, updated_at, activated_at
+	`
+
+	rows, err := r.pool.Query(ctx, sql, time.Now(), id)
 	if err != nil {
 		return nil, err
 	}

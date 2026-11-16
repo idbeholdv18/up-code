@@ -72,9 +72,7 @@ func main() {
 		log.Fatalf("falied to declare exchange %s: %v", eventsExchangeName, err)
 	}
 
-	publisher, err := conn.NewPublisher(ctx, &rmq.ExchangeAddress{
-		Exchange: eventsExchangeName,
-	}, nil)
+	publisher, err := conn.NewPublisher(ctx, nil, nil)
 	if err != nil {
 		log.Fatalf("failed to create publisher: %v", err)
 	}
@@ -82,7 +80,7 @@ func main() {
 		_ = publisher.Close(context.Background())
 	}()
 
-	eventsPublisher := events.NewRmqPublisher(publisher)
+	eventsPublisher := events.NewRmqPublisher(publisher, eventsExchangeName)
 	accessTokenService := token.NewJwtAccessTokenService([]byte(jwtAccessSecretKey), time.Minute*5)
 	confirmationTokenService := token.NewJwtConfirmationTokenService([]byte(jwtConfirmationSecretKey), time.Hour*24)
 	passwordHashService := hash.NewArgon2idService(4)
@@ -106,7 +104,7 @@ func main() {
 	r.Route("/auth", func(r chi.Router) {
 		r.Post("/register", authHandler.HandleRegister)
 		r.Post("/login", authHandler.HandleLogin)
-		r.Post("/confirm", authHandler.HandleActivate)
+		r.Get("/confirm", authHandler.HandleActivate)
 	})
 
 	r.Route("/protected", func(r chi.Router) {

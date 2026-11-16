@@ -13,9 +13,10 @@ type rmqPublisher struct {
 	exchangeName string
 }
 
-func NewRmqPublisher(publisher *rmq.Publisher) Publisher {
+func NewRmqPublisher(publisher *rmq.Publisher, exchangeName string) Publisher {
 	return &rmqPublisher{
-		publisher: publisher,
+		publisher:    publisher,
+		exchangeName: exchangeName,
 	}
 }
 

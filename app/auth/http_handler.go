@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/google/uuid"
+	"github.com/idbeholdv18/up-code/app/events"
 	"github.com/idbeholdv18/up-code/app/hash"
-	"github.com/idbeholdv18/up-code/app/mail"
 	"github.com/idbeholdv18/up-code/app/token"
 	"github.com/idbeholdv18/up-code/app/user"
 )
@@ -17,7 +16,7 @@ type httpHandler struct {
 	accessTokenService       token.AccessTokenService
 	confirmationTokenService token.ConfirmationTokenService
 	hashService              hash.HashService
-	mailPublisher            mail.Publisher
+	eventsPublisher          events.Publisher
 	baseURL                  string
 }
 
@@ -26,7 +25,7 @@ func NewHttpHandler(
 	accessTokenService token.AccessTokenService,
 	hashService hash.HashService,
 	confirmationTokenService token.ConfirmationTokenService,
-	mailPublisher mail.Publisher,
+	eventsPublisher events.Publisher,
 	baseURL string,
 ) *httpHandler {
 	return &httpHandler{
@@ -34,7 +33,7 @@ func NewHttpHandler(
 		accessTokenService:       accessTokenService,
 		confirmationTokenService: confirmationTokenService,
 		hashService:              hashService,
-		mailPublisher:            mailPublisher,
+		eventsPublisher:          eventsPublisher,
 		baseURL:                  baseURL,
 	}
 }
@@ -84,18 +83,21 @@ func (h *httpHandler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	confirmationLink := fmt.Sprintf("%s/auth/confirm?token=%s", h.baseURL, confirmationToken)
 
-	event := mail.ConfirmationEmailEvent{
-		EventID:          uuid.NewString(),
-		Email:            u.Email,
-		FullName:         u.FullName,
-		ConfirmationLink: confirmationLink,
-	}
+	envelope := events.NewEnvelope(
+		events.TopicUserRegistered,
+		events.UserRegisteredPayload{
+			UserID:           u.ID,
+			Email:            u.Email,
+			FullName:         u.FullName,
+			ConfirmationLink: confirmationLink,
+		},
+	)
 
-	err = h.mailPublisher.PublishConfirmation(r.Context(), event)
+	err = h.eventsPublisher.Publish(r.Context(), events.TopicUserRegistered, envelope)
 	if err != nil {
 		// TODO fix Dual Write
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(fmt.Sprintf("internal error %v", err))
+		json.NewEncoder(w).Encode("failed to pubish registration event")
 		return
 	}
 

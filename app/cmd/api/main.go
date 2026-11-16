@@ -11,8 +11,8 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/idbeholdv18/up-code/app/auth"
+	"github.com/idbeholdv18/up-code/app/events"
 	"github.com/idbeholdv18/up-code/app/hash"
-	"github.com/idbeholdv18/up-code/app/mail"
 	"github.com/idbeholdv18/up-code/app/token"
 	"github.com/idbeholdv18/up-code/app/user"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -63,17 +63,17 @@ func main() {
 		_ = env.CloseConnections(context.Background())
 	}()
 
-	const confirmationQueueName = "mail.confirmation"
+	const eventsExchangeName = "lms.events"
 
-	_, err = conn.Management().DeclareQueue(ctx, &rmq.QuorumQueueSpecification{
-		Name: confirmationQueueName,
+	_, err = conn.Management().DeclareExchange(ctx, &rmq.TopicExchangeSpecification{
+		Name: eventsExchangeName,
 	})
 	if err != nil {
-		log.Fatalf("falied to declare a queue: %v", err)
+		log.Fatalf("falied to declare exchange %s: %v", eventsExchangeName, err)
 	}
 
-	publisher, err := conn.NewPublisher(ctx, &rmq.QueueAddress{
-		Queue: confirmationQueueName,
+	publisher, err := conn.NewPublisher(ctx, &rmq.ExchangeAddress{
+		Exchange: eventsExchangeName,
 	}, nil)
 	if err != nil {
 		log.Fatalf("failed to create publisher: %v", err)
@@ -82,7 +82,7 @@ func main() {
 		_ = publisher.Close(context.Background())
 	}()
 
-	mailPublisher := mail.NewRmqPublisher(publisher)
+	eventsPublisher := events.NewRmqPublisher(publisher)
 	accessTokenService := token.NewJwtAccessTokenService([]byte(jwtAccessSecretKey), time.Minute*5)
 	confirmationTokenService := token.NewJwtConfirmationTokenService([]byte(jwtConfirmationSecretKey), time.Hour*24)
 	passwordHashService := hash.NewArgon2idService(4)
@@ -94,7 +94,7 @@ func main() {
 		accessTokenService,
 		passwordHashService,
 		confirmationTokenService,
-		mailPublisher,
+		eventsPublisher,
 		"http://localhost:8080",
 	)
 

@@ -18,3 +18,4 @@ EXPOSE 8080
 CMD [ "/usr/local/bin/app" ]
 
 
+    

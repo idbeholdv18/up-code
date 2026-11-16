@@ -1,9 +1,9 @@
 services:
-  app:
+  app-service:
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: app
+    container_name: app-service
     ports:
       - "8080:8080"
     networks:
@@ -13,7 +13,41 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
+      rabbitmq:
+        condition: service_healthy
 
+  notifications-service:
+    build:
+      context: ./notifications
+      dockerfile: Dockerfile
+    container_name: notifications-service
+    networks:
+      - app_net
+    env_file:
+      - .env
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+
+  rabbitmq:
+    image: rabbitmq:4.4.0-management
+    container_name: rabbitmq
+    env_file:
+      - .env
+    networks:
+      - app_net
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+    
   db:
     image: postgres:18
     container_name: db
@@ -47,8 +81,27 @@ services:
     networks:
       - app_net
 
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    restart: unless-stopped
+    volumes:
+      - mailpit_volume:/data
+    ports:
+      - 8025:8025
+      - 1025:1025
+    env_file:
+      - .env
+    networks:
+      - app_net
+    depends_on:
+      app-service:
+        condition: service_started
+
 networks:
   app_net:
 
 volumes:
   app_volume:
+  mailpit_volume:
+  rabbitmq_data:

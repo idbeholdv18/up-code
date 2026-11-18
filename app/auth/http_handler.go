@@ -133,6 +133,12 @@ func (h *httpHandler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if candidate.ActivatedAt == nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode("not activated")
+		return
+	}
+
 	isPasswordCorrect, err := h.hashService.Compare(r.Context(), body.Password, candidate.PasswordHash)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

@@ -1,9 +1,15 @@
+import { RegistrationForm } from "@/feature/register";
 import { FC } from "react";
 
-export interface SignupPageProps {}
+type SignupPageProps = {};
 
 const SignupPage: FC<SignupPageProps> = (props) => {
-  return <div>Signup page</div>;
+  return (
+    <div>
+      <h1>Sign Up</h1>
+      <RegistrationForm />
+    </div>
+  );
 };
 
 export default SignupPage;

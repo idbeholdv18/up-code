@@ -13,6 +13,8 @@ const webpackConfig: webpack.Configuration = {
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[contenthash].[name].js",
+    chunkFilename: "[contenthash].[name].chunk.js",
+    publicPath: "/",
     clean: true,
   },
   module: {
@@ -41,6 +43,9 @@ const webpackConfig: webpack.Configuration = {
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
+    alias: {
+      "@": path.resolve(__dirname, "src"),
+    },
   },
   plugins: [
     new HtmlWebpackPlugin({

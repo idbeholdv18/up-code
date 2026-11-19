@@ -1,0 +1,8 @@
+*
+
+!app/
+
+!shared/go.mod
+!shared/go.sum
+!shared/errregistry/
+!shared/httpkit/

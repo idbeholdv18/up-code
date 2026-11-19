@@ -5,16 +5,19 @@ go 1.25.1
 require (
 	github.com/alexedwards/argon2id v1.0.0
 	github.com/go-chi/chi/v5 v5.5.0
+	github.com/go-chi/cors v1.2.2
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
+	github.com/idbeholdv18/up-code/shared v0.0.0
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/rabbitmq/rabbitmq-amqp-go-client v1.5.0
 )
 
+replace github.com/idbeholdv18/up-code/shared => ../shared
+
 require (
 	github.com/Azure/go-amqp v1.7.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/go-chi/cors v1.2.2 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

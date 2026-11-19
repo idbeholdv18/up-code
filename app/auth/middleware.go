@@ -2,12 +2,11 @@ package auth
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/idbeholdv18/up-code/app/token"
+	"github.com/idbeholdv18/up-code/shared/httpkit"
 )
 
 type ctxKey string
@@ -19,36 +18,29 @@ func GetUserIDFromCtx(ctx context.Context) (int64, bool) {
 	return id, ok
 }
 
-func JwtMiddleware(accessTokenService token.AccessTokenService) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		fn := func(w http.ResponseWriter, r *http.Request) {
+func JwtMiddleware(accessTokenService token.AccessTokenService) httpkit.Middleware {
+	return func(next httpkit.Handler) httpkit.Handler {
+		return func(w http.ResponseWriter, r *http.Request) error {
 			w.Header().Add("Content-Type", "application/json")
 
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode("missing access token: must be bearer")
-				return
+				return ErrInvalidAccessToken
 			}
 
 			tokenString, ok := strings.CutPrefix(authHeader, "Bearer ")
 			if !ok {
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode("invalid access token")
-				return
+				return ErrInvalidAccessToken
 			}
 
 			claims, err := accessTokenService.Validate(r.Context(), tokenString)
 			if err != nil {
-				w.WriteHeader(http.StatusUnauthorized)
-				json.NewEncoder(w).Encode(fmt.Sprintf("invalid access token %v", err))
-				return
+				return ErrInvalidAccessToken
 			}
 
 			ctx := context.WithValue(r.Context(), userIDKey, claims.UserID)
 
-			next.ServeHTTP(w, r.WithContext(ctx))
+			return next(w, r.WithContext(ctx))
 		}
-		return http.HandlerFunc(fn)
 	}
 }

@@ -16,6 +16,8 @@ import (
 	"github.com/idbeholdv18/up-code/app/hash"
 	"github.com/idbeholdv18/up-code/app/token"
 	"github.com/idbeholdv18/up-code/app/user"
+	"github.com/idbeholdv18/up-code/shared/errregistry"
+	"github.com/idbeholdv18/up-code/shared/httpkit"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	rmq "github.com/rabbitmq/rabbitmq-amqp-go-client/pkg/rabbitmqamqp"
@@ -81,6 +83,9 @@ func main() {
 		_ = publisher.Close(context.Background())
 	}()
 
+	errorRegistry := errregistry.New()
+	// errMiddlware := errregistry.HTTPChiErrorMiddleware(registry)
+
 	eventsPublisher := events.NewRmqPublisher(publisher, eventsExchangeName)
 	accessTokenService := token.NewJwtAccessTokenService([]byte(jwtAccessSecretKey), time.Minute*5)
 	confirmationTokenService := token.NewJwtConfirmationTokenService([]byte(jwtConfirmationSecretKey), time.Hour*24)
@@ -97,10 +102,14 @@ func main() {
 		"http://localhost:8080",
 	)
 
+	errorRegistry.Merge(auth.Errors())
+
 	jwtMiddleware := auth.JwtMiddleware(accessTokenService)
 
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
+
+	app := httpkit.NewRouteBuilder(errorRegistry)
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},
@@ -112,16 +121,21 @@ func main() {
 	}))
 
 	r.Route("/auth", func(r chi.Router) {
-		r.Post("/register", authHandler.HandleRegister)
-		r.Post("/login", authHandler.HandleLogin)
-		r.Get("/confirm", authHandler.HandleActivate)
+		app.Group(func(sub *httpkit.RouteBuilder) {
+			r.Post("/register", sub.Handle(authHandler.HandleRegister))
+			r.Post("/login", sub.Handle(authHandler.HandleLogin))
+			r.Get("/confirm", sub.Handle(authHandler.HandleActivate))
+		})
 	})
 
 	r.Route("/protected", func(r chi.Router) {
-		r.Use(jwtMiddleware)
-		r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-			id, _ := auth.GetUserIDFromCtx(r.Context())
-			fmt.Fprintf(w, "protected: %d\n", id)
+		app.Group(func(sub *httpkit.RouteBuilder) {
+			sub.Use(jwtMiddleware)
+			r.Get("/", sub.Handle(func(w http.ResponseWriter, r *http.Request) error {
+				id, _ := auth.GetUserIDFromCtx(r.Context())
+				fmt.Fprintf(w, "protected: %d\n", id)
+				return nil
+			}))
 		})
 	})
 

@@ -3,6 +3,7 @@ package channel
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/smtp"
 )
 
@@ -28,8 +29,10 @@ func (s *SMTPSender) Send(ctx context.Context, n Notification) error {
 	msg := []byte(subject + mime + n.Body)
 
 	if err := smtp.SendMail(s.addr, nil, s.from, []string{n.Recipient}, msg); err != nil {
-		return fmt.Errorf("smtp send mail to %s: %v",n.Recipient, err)
+		return fmt.Errorf("smtp send mail to %s: %v", n.Recipient, err)
 	}
+
+	slog.InfoContext(ctx, "confirmation email has been sent")
 
 	return nil
 }

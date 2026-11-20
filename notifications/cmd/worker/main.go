@@ -11,6 +11,7 @@ import (
 	"github.com/idbeholdv18/up-code/notifications/internal/channel"
 	"github.com/idbeholdv18/up-code/notifications/internal/consumer"
 	"github.com/idbeholdv18/up-code/notifications/internal/dispatcher"
+	"github.com/idbeholdv18/up-code/shared/logger"
 	rmq "github.com/rabbitmq/rabbitmq-amqp-go-client/pkg/rabbitmqamqp"
 )
 
@@ -21,6 +22,8 @@ const (
 )
 
 func main() {
+	logger.Init("notifications-service")
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 

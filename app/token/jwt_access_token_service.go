@@ -2,7 +2,6 @@ package token
 
 import (
 	"context"
-	"errors"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -51,7 +50,7 @@ func (s *jwtAccessTokenService) Validate(ctx context.Context, tokenString string
 	var envelope claimsEnvelope
 	token, err := jwt.ParseWithClaims(tokenString, &envelope, func(t *jwt.Token) (any, error) {
 		if t.Method.Alg() != s.signingMethod.Alg() {
-			return nil, errors.New("incorrect signing method")
+			return nil, ErrInvalidAccessToken
 		}
 		return s.key, nil
 	})
@@ -59,7 +58,7 @@ func (s *jwtAccessTokenService) Validate(ctx context.Context, tokenString string
 		return nil, err
 	}
 	if !token.Valid {
-		return nil, errors.New("token validation failed")
+		return nil, ErrInvalidAccessToken
 	}
 
 	return &AccessTokenClaims{UserID: envelope.UserID}, nil

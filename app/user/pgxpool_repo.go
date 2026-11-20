@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgerrcode"
@@ -94,12 +95,13 @@ func (r *pgxpoolRepo) Activate(ctx context.Context, id int64) (*User, error) {
 
 	rows, err := r.pool.Query(ctx, sql, time.Now(), id)
 	if err != nil {
+		return nil, r.handleDBError(err)
 	}
 
 	u, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[User])
 
 	if err != nil {
-		return nil, err
+		return nil, r.handleDBError(err)
 	}
 
 	return &u, nil
@@ -110,9 +112,9 @@ func (r *pgxpoolRepo) handleDBError(err error) error {
 	if errors.As(err, &pgErr) {
 		switch pgErr.Code {
 		case pgerrcode.UniqueViolation:
-			return ErrUserAlreadyExists
+			return fmt.Errorf("%w: %w", ErrUserAlreadyExists, err)
 		case pgerrcode.NotNullViolation, pgerrcode.CheckViolation:
-			return ErrInvalidData
+			return fmt.Errorf("%w: %w", ErrInvalidData, err)
 		}
 	}
 	return err

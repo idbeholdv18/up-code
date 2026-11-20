@@ -103,6 +103,7 @@ func main() {
 	)
 
 	errorRegistry.Merge(auth.Errors())
+	errorRegistry.Merge(user.Errors())
 
 	jwtMiddleware := auth.JwtMiddleware(accessTokenService)
 

@@ -2,9 +2,12 @@ package user
 
 import (
 	"context"
+	"errors"
 	"time"
 
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -27,13 +30,13 @@ func (r *pgxpoolRepo) FindByID(ctx context.Context, id int64) (*User, error) {
 
 	rows, err := r.pool.Query(ctx, sql, id)
 	if err != nil {
-		return nil, err
+		return nil, r.handleDBError(err)
 	}
 
 	u, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[User])
 
 	if err != nil {
-		return nil, err
+		return nil, r.handleDBError(err)
 	}
 
 	return &u, nil
@@ -48,13 +51,13 @@ func (r *pgxpoolRepo) FindByEmail(ctx context.Context, email string) (*User, err
 
 	rows, err := r.pool.Query(ctx, sql, email)
 	if err != nil {
-		return nil, err
+		return nil, r.handleDBError(err)
 	}
 
 	u, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[User])
 
 	if err != nil {
-		return nil, err
+		return nil, r.handleDBError(err)
 	}
 
 	return &u, nil
@@ -69,13 +72,13 @@ func (r *pgxpoolRepo) Create(ctx context.Context, email string, password_hash st
 
 	rows, err := r.pool.Query(ctx, sql, email, password_hash, fullName)
 	if err != nil {
-		return nil, err
+		return nil, r.handleDBError(err)
 	}
 
 	u, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[User])
 
 	if err != nil {
-		return nil, err
+		return nil, r.handleDBError(err)
 	}
 
 	return &u, nil
@@ -91,7 +94,6 @@ func (r *pgxpoolRepo) Activate(ctx context.Context, id int64) (*User, error) {
 
 	rows, err := r.pool.Query(ctx, sql, time.Now(), id)
 	if err != nil {
-		return nil, err
 	}
 
 	u, err := pgx.CollectOneRow(rows, pgx.RowToStructByName[User])
@@ -101,4 +103,17 @@ func (r *pgxpoolRepo) Activate(ctx context.Context, id int64) (*User, error) {
 	}
 
 	return &u, nil
+}
+
+func (r *pgxpoolRepo) handleDBError(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		switch pgErr.Code {
+		case pgerrcode.UniqueViolation:
+			return ErrUserAlreadyExists
+		case pgerrcode.NotNullViolation, pgerrcode.CheckViolation:
+			return ErrInvalidData
+		}
+	}
+	return err
 }

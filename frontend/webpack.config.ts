@@ -2,7 +2,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import webpack from "webpack";
 import "webpack-dev-server";
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+import HtmlWebpackPlugin from "html-webpack-plugin";
+import MiniCssExtractPlugin from "mini-css-extract-plugin"
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -39,6 +41,14 @@ const webpackConfig: webpack.Configuration = {
         },
         exclude: /node_modules/,
       },
+      {
+        test: /\.css$/i,
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader',
+          '@tailwindcss/webpack',
+        ],
+      },
     ],
   },
   resolve: {
@@ -51,6 +61,7 @@ const webpackConfig: webpack.Configuration = {
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, "public", "index.html"),
     }),
+    new MiniCssExtractPlugin(),
   ],
   devServer: {
     port: 9000,

@@ -4,6 +4,7 @@ import { RouterProvider } from "react-router";
 import { router } from "./app/router";
 import { Provider } from "react-redux";
 import { store } from "@/shared/store/store";
+import './app/index.css';
 
 document.body.innerHTML = '<div id="app"></div>';
 

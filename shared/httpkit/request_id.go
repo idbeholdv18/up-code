@@ -11,6 +11,10 @@ const RequestIDHeader = "X-Request-ID"
 
 type reqIDCtxKey struct{}
 
+func withRequestID(ctx context.Context, reqID string) context.Context {
+	return context.WithValue(ctx, reqIDCtxKey{}, reqID)
+}
+
 func RequestIDMiddleware() Middleware {
 	return func(next Handler) Handler {
 		return func(w http.ResponseWriter, r *http.Request) error {
@@ -18,9 +22,10 @@ func RequestIDMiddleware() Middleware {
 			if reqID == "" {
 				reqID = generateRequestID()
 			}
-
 			w.Header().Set(RequestIDHeader, reqID)
-			return next(w, r)
+
+			ctx := withRequestID(r.Context(), reqID)
+			return next(w, r.WithContext(ctx))
 		}
 	}
 }

@@ -1,78 +1,70 @@
 import { FC, useId, useState } from "react";
 import { useRegisterMutation } from "../api/api";
+import z from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type RegistrationFormProps = {};
 
+const registrationSchema = z.object({
+  full_name: z.string().min(2, "Enter at least 2 symbols"),
+  email: z
+    .string()
+    .min(1, "Email required")
+    .pipe(z.email("Invalid email format")),
+  password: z.string().min(8, "Password must contain at least 8 symbols"),
+});
+
+type RegistrationFormValues = z.infer<typeof registrationSchema>;
+
 export const RegistrationForm: FC<RegistrationFormProps> = (props) => {
-  const [register, result] = useRegisterMutation();
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
-  const [fullName, setFullName] = useState<string>("");
+  const [registerUser, result] = useRegisterMutation();
 
   const emailInputId = useId();
   const fullNameInputId = useId();
   const passwordInputId = useId();
 
-  const onEmailInput = (
-    e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>,
-  ) => {
-    setEmail(e.target.value);
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isValid },
+  } = useForm<RegistrationFormValues>({
+    resolver: zodResolver(registrationSchema),
+    mode: "onBlur",
+  });
 
-  const onPasswordInput = (
-    e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>,
-  ) => {
-    setPassword(e.target.value);
-  };
-
-  const onFullNameInput = (
-    e: React.ChangeEvent<HTMLInputElement, HTMLInputElement>,
-  ) => {
-    setFullName(e.target.value);
+  const onSubmit = (data: RegistrationFormValues) => {
+    registerUser(data);
   };
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-      }}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: "1rem",
-      }}
-    >
-      <label htmlFor={emailInputId}>email</label>
-      <input
-        type='text'
-        onChange={onEmailInput}
-        value={email}
-        id={emailInputId}
-      />
-      <label htmlFor={fullNameInputId}>full name</label>
-      <input
-        type='text'
-        onChange={onFullNameInput}
-        value={fullName}
-        id={fullNameInputId}
-      />
-      <label htmlFor={passwordInputId}>password</label>
-      <input
-        type='text'
-        onChange={onPasswordInput}
-        value={password}
-        id={passwordInputId}
-      />
-      <button
-        onClick={() =>
-          register({
-            email: email,
-            full_name: fullName,
-            password: password,
-          })
-        }
-      >
-        {result.isLoading ? "loading..." : "create test user"}
+    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+      <div>
+        <label htmlFor={fullNameInputId}>Имя</label>
+        <input id={fullNameInputId} type='text' {...register("full_name")} />
+        {errors.full_name && (
+          <span style={{ color: "red" }}>{errors.full_name.message}</span>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor={emailInputId}>Email</label>
+        <input id={emailInputId} type='email' {...register("email")} />
+        {errors.email && (
+          <span style={{ color: "red" }}>{errors.email.message}</span>
+        )}
+      </div>
+
+      <div>
+        <label htmlFor={passwordInputId}>Пароль</label>
+        <input id={passwordInputId} type='password' {...register("password")} />
+        {errors.password && (
+          <span style={{ color: "red" }}>{errors.password.message}</span>
+        )}
+      </div>
+
+      <button type='submit' disabled={result.isLoading || !isValid}>
+        {result.isLoading ? "Регистрация..." : "Зарегистрироваться"}
       </button>
     </form>
   );

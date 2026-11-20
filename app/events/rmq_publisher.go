@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/idbeholdv18/up-code/shared/httpkit"
 	rmq "github.com/rabbitmq/rabbitmq-amqp-go-client/pkg/rabbitmqamqp"
 )
 
@@ -33,6 +34,12 @@ func (p *rmqPublisher) Publish(ctx context.Context, routingKey string, event Env
 
 	if err != nil {
 		return fmt.Errorf("create message with addr for %s: %v", event.EventType, err)
+	}
+
+	if reqID := httpkit.GetRequestID(ctx); reqID != "" {
+		msg.ApplicationProperties = map[string]any{
+			"x-request-id": reqID,
+		}
 	}
 
 	res, err := p.publisher.Publish(ctx, msg)

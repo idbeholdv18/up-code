@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 
 	"github.com/idbeholdv18/up-code/app/events"
@@ -63,8 +64,6 @@ func (h *httpHandler) HandleRegister(w http.ResponseWriter, r *http.Request) err
 
 	u, err := h.userService.Create(r.Context(), body.Email, hashedPassword, body.FullName)
 	if err != nil {
-		// TODO switch to api error
-		log.Printf("failed to create user: %v", err)
 		return err
 	}
 
@@ -98,6 +97,11 @@ func (h *httpHandler) HandleRegister(w http.ResponseWriter, r *http.Request) err
 		log.Printf("failed to pubish registration event: %v", err)
 		return err
 	}
+
+	slog.InfoContext(r.Context(), "user account created",
+		slog.Int64("user_id", u.ID),
+		slog.String("email", u.Email),
+	)
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(RegisterResponsePayload{

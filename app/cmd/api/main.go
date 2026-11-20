@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/idbeholdv18/up-code/app/auth"
 	"github.com/idbeholdv18/up-code/app/events"
@@ -18,12 +17,14 @@ import (
 	"github.com/idbeholdv18/up-code/app/user"
 	"github.com/idbeholdv18/up-code/shared/errregistry"
 	"github.com/idbeholdv18/up-code/shared/httpkit"
+	"github.com/idbeholdv18/up-code/shared/logger"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	rmq "github.com/rabbitmq/rabbitmq-amqp-go-client/pkg/rabbitmqamqp"
 )
 
 func main() {
+	logger.Init("app-service")
 	ctx := context.Background()
 
 	postgresUsername := os.Getenv("POSTGRES_USER")
@@ -109,9 +110,10 @@ func main() {
 	jwtMiddleware := auth.JwtMiddleware(accessTokenService)
 
 	r := chi.NewRouter()
-	r.Use(middleware.Logger)
+	// r.Use(middleware.Logger)
 
 	app := httpkit.NewRouteBuilder(errorRegistry)
+	app = app.Use(httpkit.RequestIDMiddleware())
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"https://*", "http://*"},

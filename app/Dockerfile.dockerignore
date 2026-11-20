@@ -6,3 +6,4 @@
 !shared/go.sum
 !shared/errregistry/
 !shared/httpkit/
+!shared/logger/

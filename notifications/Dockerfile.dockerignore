@@ -1,0 +1,9 @@
+*
+
+!notifications/
+
+!shared/go.mod
+!shared/go.sum
+!shared/errregistry/
+!shared/httpkit/
+!shared/logger/

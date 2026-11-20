@@ -18,8 +18,8 @@ services:
 
   notifications-service:
     build:
-      context: ./notifications
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: notifications/Dockerfile
     container_name: notifications-service
     networks:
       - app_net

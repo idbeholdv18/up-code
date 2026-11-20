@@ -2,7 +2,12 @@ module github.com/idbeholdv18/up-code/notifications
 
 go 1.25.1
 
-require github.com/rabbitmq/rabbitmq-amqp-go-client v1.5.0
+require (
+	github.com/idbeholdv18/up-code/shared v0.0.0
+	github.com/rabbitmq/rabbitmq-amqp-go-client v1.5.0
+)
+
+replace github.com/idbeholdv18/up-code/shared => ../shared
 
 require (
 	github.com/Azure/go-amqp v1.7.0 // indirect

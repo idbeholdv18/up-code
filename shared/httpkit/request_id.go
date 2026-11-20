@@ -11,7 +11,7 @@ const RequestIDHeader = "X-Request-ID"
 
 type reqIDCtxKey struct{}
 
-func withRequestID(ctx context.Context, reqID string) context.Context {
+func WithRequestID(ctx context.Context, reqID string) context.Context {
 	return context.WithValue(ctx, reqIDCtxKey{}, reqID)
 }
 
@@ -20,11 +20,11 @@ func RequestIDMiddleware() Middleware {
 		return func(w http.ResponseWriter, r *http.Request) error {
 			reqID := r.Header.Get(RequestIDHeader)
 			if reqID == "" {
-				reqID = generateRequestID()
+				reqID = GenerateRequestID()
 			}
 			w.Header().Set(RequestIDHeader, reqID)
 
-			ctx := withRequestID(r.Context(), reqID)
+			ctx := WithRequestID(r.Context(), reqID)
 			return next(w, r.WithContext(ctx))
 		}
 	}
@@ -37,7 +37,7 @@ func GetRequestID(ctx context.Context) string {
 	return ""
 }
 
-func generateRequestID() string {
+func GenerateRequestID() string {
 	b := make([]byte, 8)
 	if _, err := rand.Read(b); err != nil {
 		return ""

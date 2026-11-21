@@ -14,6 +14,9 @@ importers:
       '@reduxjs/toolkit':
         specifier: ^2.14.0
         version: 2.14.0(@types/react@19.3.0)(react-redux@9.3.1(@types/react@19.3.0)(react@19.3.1)(redux@5.0.1))(react@19.3.1)
+      async-mutex:
+        specifier: ^0.5.0
+        version: 0.5.0
       react:
         specifier: ^19.3.1
         version: 19.3.1
@@ -990,6 +993,9 @@ packages:
   asn1js@3.1.0:
     resolution: {integrity: sha512-HWYi1THkOqguCiO+vwj09ZkQFD2kKEsejYHAYCtX0D80WVdoDnvRc9IukXX/jeb0T9NRWJnRtqwdbHltnFjwXA==}
     engines: {node: '>=12.0.0'}
+
+  async-mutex@0.5.0:
+    resolution: {integrity: sha512-1A94B18jkJ3DYq284ohPxoXbfTA5HsQ7/Mf4DEhcyLx3Bz27Rh59iScbB6EPiP+B+joue6YCxcMXSbFC1tZKwA==}
 
   baseline-browser-mapping@2.11.37:
     resolution: {integrity: sha512-QYph+vfurmaxhNwi9FprfmtkT5cx2Keg8FzZ0vnjO8ukscIybVyZGMFwdllKGlTI6qyU8ck43OM9UXh+IFJihQ==}
@@ -2924,6 +2930,10 @@ snapshots:
     dependencies:
       pvtsutils: 1.3.6
       pvutils: 1.2.0
+      tslib: 2.9.1
+
+  async-mutex@0.5.0:
+    dependencies:
       tslib: 2.9.1
 
   baseline-browser-mapping@2.11.37: {}

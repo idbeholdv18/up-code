@@ -4,11 +4,10 @@ import { RouterProvider } from "react-router";
 import { router } from "./app/router";
 import { Provider } from "react-redux";
 import { store } from "@/shared/store/store";
-import './app/index.css';
+import "./app/index.css";
 
 document.body.innerHTML = '<div id="app"></div>';
 
-// Render your React component instead
 const appElement = document.getElementById("app");
 if (!appElement) {
   throw new Error("element with id app doesn't exist");

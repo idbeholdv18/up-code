@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+@theme {
+  --color-bg-primary: #0d0d0d;
+  --color-bg-accent: #000000;
+
+  --color-fg-accent: #ffffff;
+  --color-fg-primary: #f0f0f0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p {
+  color: var(--color-fg-primary);
+}

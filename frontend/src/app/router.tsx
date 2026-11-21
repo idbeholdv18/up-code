@@ -2,10 +2,13 @@ import { createBrowserRouter } from "react-router";
 import { HomePage } from "@/page/home";
 import { Suspense } from "react";
 import { AuthLayout, SigninPage, SignupPage } from "@/page/auth";
+import { RootLayout } from "@/page/root";
+import { DrawerProvider } from "@/shared/ui/drawer";
 
 export const router = createBrowserRouter([
   {
     path: "/",
+    element: <RootLayout />,
     children: [
       {
         index: true,

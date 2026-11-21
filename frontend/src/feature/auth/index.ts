@@ -1,2 +1,2 @@
 export { RegistrationForm } from "./ui/RegistrationForm";
-export { registerApi } from "./api/api";
+export { authApi as registerApi } from "./api/api/api";

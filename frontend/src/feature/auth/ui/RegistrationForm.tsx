@@ -1,19 +1,11 @@
-import { FC, useId, useState } from "react";
-import { useRegisterMutation } from "../api/api";
-import z from "zod";
-import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { FC, useId } from "react";
+import { useForm } from "react-hook-form";
+import z from "zod";
+import { useRegisterMutation } from "../api/api/api";
+import { registrationSchema } from "../api/model/schema";
 
 type RegistrationFormProps = {};
-
-const registrationSchema = z.object({
-  full_name: z.string().min(2, "Enter at least 2 symbols"),
-  email: z
-    .string()
-    .min(1, "Email required")
-    .pipe(z.email("Invalid email format")),
-  password: z.string().min(8, "Password must contain at least 8 symbols"),
-});
 
 type RegistrationFormValues = z.infer<typeof registrationSchema>;
 
@@ -38,18 +30,32 @@ export const RegistrationForm: FC<RegistrationFormProps> = (props) => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} noValidate>
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      noValidate
+      className='text-fg-accent'
+    >
       <div>
         <label htmlFor={fullNameInputId}>Имя</label>
-        <input id={fullNameInputId} type='text' {...register("full_name")} />
-        {errors.full_name && (
-          <span style={{ color: "red" }}>{errors.full_name.message}</span>
+        <input
+          id={fullNameInputId}
+          type='text'
+          {...register("fullName")}
+          className='border border-fg-primary'
+        />
+        {errors.fullName && (
+          <span style={{ color: "red" }}>{errors.fullName.message}</span>
         )}
       </div>
 
       <div>
         <label htmlFor={emailInputId}>Email</label>
-        <input id={emailInputId} type='email' {...register("email")} />
+        <input
+          id={emailInputId}
+          type='email'
+          {...register("email")}
+          className='border border-fg-primary'
+        />
         {errors.email && (
           <span style={{ color: "red" }}>{errors.email.message}</span>
         )}
@@ -57,7 +63,12 @@ export const RegistrationForm: FC<RegistrationFormProps> = (props) => {
 
       <div>
         <label htmlFor={passwordInputId}>Пароль</label>
-        <input id={passwordInputId} type='password' {...register("password")} />
+        <input
+          id={passwordInputId}
+          type='password'
+          {...register("password")}
+          className='border border-fg-primary'
+        />
         {errors.password && (
           <span style={{ color: "red" }}>{errors.password.message}</span>
         )}

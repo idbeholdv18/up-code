@@ -1,4 +1,4 @@
-import { RegistrationForm } from "@/feature/register";
+import { RegistrationForm } from "@/feature/auth";
 import { FC } from "react";
 
 type SignupPageProps = {};

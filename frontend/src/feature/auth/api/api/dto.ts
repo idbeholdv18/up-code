@@ -1,10 +1,10 @@
-type RegisterRequest = {
+export type RegisterRequestDto = {
   email: string;
   password: string;
   full_name: string;
 };
 
-type RegisterResponse = {
+export type RegisterResponseDto = {
   email: string;
   full_name: string;
 };
